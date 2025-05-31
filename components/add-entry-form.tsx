@@ -58,27 +58,49 @@ export function AddEntryForm() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Reset form
-    setFormData({
-      from: "",
-      to: "",
-      returnTo: "",
-      materialDescription: "",
-      units: "",
-      quantity: "",
-      orderBy: "",
-      remark: "",
-    })
-    setDate(undefined)
-    setIsSubmitting(false)
-
-    toast({
-      title: "Success",
-      description: "Material entry added successfully",
-    })
+    // Send data to API
+    try {
+      const res = await fetch("/api/inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: date.toISOString(),
+          from: formData.from,
+          to: formData.to,
+          returnTo: formData.returnTo,
+          materialDescription: formData.materialDescription,
+          units: formData.units,
+          quantity: Number(formData.quantity),
+          orderBy: formData.orderBy,
+          remark: formData.remark,
+        }),
+      })
+      if (!res.ok) throw new Error("Failed to add entry")
+      // Optionally, trigger a refresh or redirect
+      setFormData({
+        from: "",
+        to: "",
+        returnTo: "",
+        materialDescription: "",
+        units: "",
+        quantity: "",
+        orderBy: "",
+        remark: "",
+      })
+      setDate(undefined)
+      toast({
+        title: "Success",
+        description: "Material entry added successfully",
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to add entry",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleSaveAsDraft = () => {
@@ -255,3 +277,7 @@ export function AddEntryForm() {
     </div>
   )
 }
+
+// NOTE: This form only uses Date objects for the local date picker (not for rendering lists/tables)
+// All data sent to the API is in ISO string format (date.toISOString())
+// Make sure your InventoryEntry type uses string for date/createdAt everywhere else

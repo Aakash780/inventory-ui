@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import {
   Search,
@@ -32,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface InventoryEntry {
   id: string
-  date: Date
+  date: string // changed from Date
   from: string
   to: string
   returnTo: string
@@ -41,75 +41,39 @@ interface InventoryEntry {
   quantity: number
   orderBy: string
   remark: string
-  createdAt: Date
+  createdAt: string // changed from Date
   status: "completed" | "pending" | "returned"
 }
 
-const sampleEntries: InventoryEntry[] = [
-  {
-    id: "1",
-    date: new Date("2024-01-15"),
-    from: "Main Warehouse",
-    to: "Production Unit A",
-    returnTo: "Main Warehouse",
-    materialDescription: "Steel Rods - 12mm diameter, Grade 500",
-    units: "Pieces",
-    quantity: 150,
-    orderBy: "John Smith",
-    remark: "Urgent requirement for Project Alpha",
-    createdAt: new Date("2024-01-15T10:30:00"),
-    status: "completed",
-  },
-  {
-    id: "2",
-    date: new Date("2024-01-16"),
-    from: "Supplier ABC",
-    to: "Quality Control",
-    returnTo: "Storage Area B",
-    materialDescription: "Cement bags - OPC 53 Grade",
-    units: "Bags",
-    quantity: 200,
-    orderBy: "Sarah Johnson",
-    remark: "Quality inspection required before storage",
-    createdAt: new Date("2024-01-16T14:15:00"),
-    status: "pending",
-  },
-  {
-    id: "3",
-    date: new Date("2024-01-17"),
-    from: "Storage Area C",
-    to: "Construction Site",
-    returnTo: "",
-    materialDescription: "Paint Buckets - White Emulsion, 20L",
-    units: "Buckets",
-    quantity: 25,
-    orderBy: "Mike Wilson",
-    remark: "For exterior painting work",
-    createdAt: new Date("2024-01-17T09:45:00"),
-    status: "completed",
-  },
-  {
-    id: "4",
-    date: new Date("2024-01-18"),
-    from: "Electrical Supplier",
-    to: "Storage Area A",
-    returnTo: "Electrical Supplier",
-    materialDescription: "Copper Cables - 2.5mm, 100m rolls",
-    units: "Rolls",
-    quantity: 50,
-    orderBy: "David Brown",
-    remark: "Defective items to be returned",
-    createdAt: new Date("2024-01-18T16:20:00"),
-    status: "returned",
-  },
-]
+function parseDate(date: string | Date): Date {
+  return date instanceof Date ? date : new Date(date)
+}
 
 export function InventoryList() {
-  const [entries, setEntries] = useState<InventoryEntry[]>(sampleEntries)
+  const [entries, setEntries] = useState<InventoryEntry[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortField, setSortField] = useState<string>("createdAt")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+
+  // Fetch entries from API
+  useEffect(() => {
+    async function fetchEntries() {
+      setLoading(true)
+      const res = await fetch("/api/inventory")
+      const data = await res.json()
+      setEntries(data)
+      setLoading(false)
+    }
+    fetchEntries()
+  }, [])
+
+  // Delete entry handler
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/inventory/${id}`, { method: "DELETE" })
+    setEntries((prev) => prev.filter((e) => e.id !== id))
+  }
 
   const filteredEntries = entries
     .filter((entry) => {
@@ -117,14 +81,13 @@ export function InventoryList() {
         entry.materialDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
         entry.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
         entry.to.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.orderBy.toLowerCase().includes(searchTerm.toLowerCase())
+        (entry.orderBy || "").toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === "all" || entry.status === statusFilter
       return matchesSearch && matchesStatus
     })
     .sort((a, b) => {
       const aValue = a[sortField as keyof InventoryEntry]
       const bValue = b[sortField as keyof InventoryEntry]
-
       if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
       if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
       return 0
@@ -245,7 +208,13 @@ export function InventoryList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEntries.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredEntries.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                       No entries found. Try adjusting your search or filter criteria.
@@ -258,7 +227,7 @@ export function InventoryList() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(entry.date, "dd/MM/yyyy")}
+                          {format(parseDate(entry.date), "dd/MM/yyyy")}
                         </div>
                       </TableCell>
                       <TableCell>{entry.from}</TableCell>
@@ -279,7 +248,7 @@ export function InventoryList() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {format(entry.createdAt, "dd/MM/yyyy HH:mm")}
+                        {format(parseDate(entry.createdAt), "dd/MM/yyyy HH:mm")}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -299,7 +268,7 @@ export function InventoryList() {
                               Edit Entry
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(entry.id)}>
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete Entry
                             </DropdownMenuItem>
