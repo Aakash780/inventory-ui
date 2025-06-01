@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import {
   Search,
@@ -50,6 +51,7 @@ function parseDate(date: string | Date): Date {
 }
 
 export function InventoryList() {
+  const router = useRouter()
   const [entries, setEntries] = useState<InventoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -262,8 +264,7 @@ export function InventoryList() {
                             <DropdownMenuItem disabled title="Not implemented">
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem disabled title="Not implemented">
+                            </DropdownMenuItem>                            <DropdownMenuItem onClick={() => router.push(`/inventory/edit/${entry.id}`)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Entry
                             </DropdownMenuItem>
