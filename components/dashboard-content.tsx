@@ -15,85 +15,93 @@ import {
   ArrowDownRight,
 } from "lucide-react"
 import Link from "next/link"
-
-const stats = [
-  {
-    title: "Total Items",
-    value: "1,247",
-    change: "+12%",
-    trend: "up",
-    icon: Package,
-  },
-  {
-    title: "Items In",
-    value: "156",
-    change: "+8%",
-    trend: "up",
-    icon: TrendingUp,
-  },
-  {
-    title: "Items Out",
-    value: "89",
-    change: "-3%",
-    trend: "down",
-    icon: TrendingDown,
-  },
-  {
-    title: "Low Stock Alerts",
-    value: "23",
-    change: "+5",
-    trend: "alert",
-    icon: AlertTriangle,
-  },
-]
-
-const recentActivities = [
-  {
-    id: 1,
-    type: "in",
-    material: "Steel Rods - 12mm",
-    quantity: 150,
-    from: "Supplier ABC",
-    to: "Storage Area A",
-    time: "2 hours ago",
-  },
-  {
-    id: 2,
-    type: "out",
-    material: "Cement Bags - OPC 53",
-    quantity: 50,
-    from: "Storage Area B",
-    to: "Construction Site",
-    time: "4 hours ago",
-  },
-  {
-    id: 3,
-    type: "in",
-    material: "Paint Buckets - White",
-    quantity: 25,
-    from: "Paint Supplier",
-    to: "Storage Area C",
-    time: "6 hours ago",
-  },
-  {
-    id: 4,
-    type: "out",
-    material: "Electrical Cables",
-    quantity: 100,
-    from: "Storage Area A",
-    to: "Electrical Department",
-    time: "8 hours ago",
-  },
-]
-
-const lowStockItems = [
-  { name: "Safety Helmets", current: 15, minimum: 50, unit: "pieces" },
-  { name: "Welding Rods", current: 8, minimum: 25, unit: "kg" },
-  { name: "Paint Brushes", current: 12, minimum: 30, unit: "pieces" },
-  { name: "Measuring Tape", current: 3, minimum: 10, unit: "pieces" },
-]
+import { useEffect, useState } from "react"
 
 export function DashboardContent() {
+  const [stats, setStats] = useState([
+    { title: "Total Items", value: "-", change: "", trend: "up", icon: Package },
+    { title: "Items In", value: "-", change: "", trend: "up", icon: TrendingUp },
+    { title: "Items Out", value: "-", change: "", trend: "down", icon: TrendingDown },
+    { title: "Low Stock Alerts", value: "-", change: "", trend: "alert", icon: AlertTriangle },
+  ])
+  const [loading, setLoading] = useState(true)
+  const [recentActivities, setRecentActivities] = useState<any[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(true)
+  const [lowStockItems, setLowStockItems] = useState<any[]>([])
+  const [loadingLowStock, setLoadingLowStock] = useState(true)
+
+  useEffect(() => {
+    async function fetchStats() {
+      setLoading(true)
+      try {
+        const res = await fetch("/api/dashboard")
+        const data = await res.json()
+        setStats([
+          { title: "Total Items", value: data.totalItems?.toLocaleString() ?? "0", change: "", trend: "up", icon: Package },
+          { title: "Items In", value: data.itemsIn?.toLocaleString() ?? "0", change: "", trend: "up", icon: TrendingUp },
+          { title: "Items Out", value: data.itemsOut?.toLocaleString() ?? "0", change: "", trend: "down", icon: TrendingDown },
+          { title: "Low Stock Alerts", value: data.lowStockAlerts?.toLocaleString() ?? "0", change: "", trend: "alert", icon: AlertTriangle },
+        ])
+      } catch (e) {
+        // fallback to dashes
+        setStats([
+          { title: "Total Items", value: "-", change: "", trend: "up", icon: Package },
+          { title: "Items In", value: "-", change: "", trend: "up", icon: TrendingUp },
+          { title: "Items Out", value: "-", change: "", trend: "down", icon: TrendingDown },
+          { title: "Low Stock Alerts", value: "-", change: "", trend: "alert", icon: AlertTriangle },
+        ])
+      }
+      setLoading(false)
+    }
+    fetchStats()
+  }, [])
+
+  useEffect(() => {
+    async function fetchRecent() {
+      setLoadingActivities(true)
+      try {
+        const res = await fetch("/api/inventory?limit=5")
+        const data = await res.json()
+        setRecentActivities(
+          data.map((entry: any) => ({
+            id: entry.id,
+            type: entry.status === "completed" ? "in" : "out",
+            material: entry.materialDescription,
+            quantity: entry.quantity,
+            from: entry.from,
+            to: entry.to,
+            time: new Date(entry.createdAt).toLocaleString(),
+          }))
+        )
+      } catch {
+        setRecentActivities([])
+      }
+      setLoadingActivities(false)
+    }
+    fetchRecent()
+  }, [])
+
+  useEffect(() => {
+    async function fetchLowStock() {
+      setLoadingLowStock(true)
+      try {
+        const res = await fetch("/api/inventory?lowStock=1")
+        const data = await res.json()
+        setLowStockItems(
+          data.map((entry: any) => ({
+            name: entry.materialDescription,
+            current: entry.quantity,
+            unit: entry.units,
+          }))
+        )
+      } catch {
+        setLowStockItems([])
+      }
+      setLoadingLowStock(false)
+    }
+    fetchLowStock()
+  }, [])
+
   return (
     <div className="p-6 space-y-6">
       {/* Page Header */}
@@ -214,7 +222,7 @@ export function DashboardContent() {
           <CardDescription>Frequently used actions for efficient workflow</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Button className="h-20 flex-col gap-2" asChild>
               <Link href="/add-entry">
                 <Plus className="h-6 w-6" />
@@ -225,12 +233,6 @@ export function DashboardContent() {
               <Link href="/inventory">
                 <Package className="h-6 w-6" />
                 View Inventory
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2" asChild>
-              <Link href="/reports">
-                <FileText className="h-6 w-6" />
-                Generate Report
               </Link>
             </Button>
           </div>

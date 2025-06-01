@@ -3,7 +3,7 @@
 import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, Package, Plus, FileText, Settings, Warehouse, Bell, Search, User, LogOut, Home } from "lucide-react"
+import { Package, Plus, Settings, Warehouse, Bell, Search, User, LogOut, Home } from "lucide-react"
 
 import {
   Sidebar,
@@ -57,21 +57,6 @@ const navigation = [
         title: "View Inventory",
         url: "/inventory",
         icon: Package,
-      },
-    ],
-  },
-  {
-    title: "Analytics",
-    items: [
-      {
-        title: "Reports",
-        url: "/reports",
-        icon: FileText,
-      },
-      {
-        title: "Analytics",
-        url: "/analytics",
-        icon: BarChart3,
       },
     ],
   },

@@ -259,11 +259,11 @@ export function InventoryList() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem disabled title="Not implemented">
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem disabled title="Not implemented">
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Entry
                             </DropdownMenuItem>
