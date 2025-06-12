@@ -46,8 +46,25 @@ interface InventoryEntry {
   status: "completed" | "pending" | "returned"
 }
 
-function parseDate(date: string | Date): Date {
-  return date instanceof Date ? date : new Date(date)
+function parseDate(date: string | Date | null | undefined): Date {
+  if (!date) {
+    return new Date(); // Default to current date if undefined
+  }
+  // Ensure consistent date parsing regardless of environment
+  if (date instanceof Date) {
+    return date;
+  }
+  // For string dates, use explicit parsing to avoid timezone issues
+  if (typeof date === 'string') {
+    // Check if the string contains a timestamp format
+    if (date.includes('T') || date.includes(' ') || date.includes(':')) {
+      return new Date(date);
+    } else {
+      // For date-only strings (YYYY-MM-DD), add a fixed time to ensure consistent parsing
+      return new Date(`${date}T00:00:00Z`);
+    }
+  }
+  return new Date();
 }
 
 export function InventoryList() {
@@ -227,8 +244,7 @@ export function InventoryList() {
                     <TableRow key={entry.id}>
                       <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-2">                          <Calendar className="h-4 w-4 text-muted-foreground" />
                           {format(parseDate(entry.date), "dd/MM/yyyy")}
                         </div>
                       </TableCell>
@@ -248,9 +264,8 @@ export function InventoryList() {
                         <div className="truncate" title={entry.remark}>
                           {entry.remark || "-"}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(parseDate(entry.createdAt), "dd/MM/yyyy HH:mm")}
+                      </TableCell>                      <TableCell className="text-sm text-muted-foreground">
+                        {entry.createdAt ? format(parseDate(entry.createdAt), "dd/MM/yyyy HH:mm") : "-"}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

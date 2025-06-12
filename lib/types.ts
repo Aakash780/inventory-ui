@@ -1,8 +1,11 @@
 export interface InventoryEntry {
   id: string
   date: Date
+  // We can support both formats for compatibility during transition
   from: string
+  from_location?: string
   to: string
+  to_location?: string
   returnTo: string
   materialDescription: string
   units: string
@@ -10,7 +13,8 @@ export interface InventoryEntry {
   orderBy: string
   remark: string
   createdAt: Date
-  status?: "completed" | "pending" | "returned"
+  updated_at?: Date
+  status: "completed" | "pending" | "returned"
 }
 
 export interface User {

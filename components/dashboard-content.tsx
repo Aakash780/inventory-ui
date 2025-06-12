@@ -204,11 +204,10 @@ export function DashboardContent() {
                   <Badge variant="destructive">Low Stock</Badge>
                 </div>
               ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4" asChild>
-              <Link href="/reports">
+            </div>            <Button variant="outline" className="w-full mt-4" asChild>
+              <Link href="/inventory">
                 <FileText className="mr-2 h-4 w-4" />
-                Generate Report
+                View All Items
               </Link>
             </Button>
           </CardContent>

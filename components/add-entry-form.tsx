@@ -56,10 +56,16 @@ export function AddEntryForm() {
       return
     }
 
-    setIsSubmitting(true)
-
-    // Send data to API
+    setIsSubmitting(true)    // Send data to API
     try {
+      console.log('Submitting form data:', { 
+        date: date.toISOString(),
+        from: formData.from,
+        to: formData.to,
+        materialDescription: formData.materialDescription,
+        quantity: Number(formData.quantity) 
+      });
+      
       const res = await fetch("/api/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,16 +73,31 @@ export function AddEntryForm() {
           date: date.toISOString(),
           from: formData.from,
           to: formData.to,
-          returnTo: formData.returnTo,
+          returnTo: formData.returnTo || "",
           materialDescription: formData.materialDescription,
-          units: formData.units,
+          units: formData.units || "",
           quantity: Number(formData.quantity),
-          orderBy: formData.orderBy,
-          remark: formData.remark,
+          orderBy: formData.orderBy || "",
+          remark: formData.remark || "",
+          status: "completed", // Default status
         }),
-      })
-      if (!res.ok) throw new Error("Failed to add entry")
-      // Optionally, trigger a refresh or redirect
+      });
+        if (!res.ok) {
+        let errorMessage = "Failed to add entry";
+        try {
+          // Try to get error details from response
+          const errorData = await res.json();
+          console.error('API error response:', errorData);
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (jsonError) {
+          console.error('Could not parse error response as JSON:', jsonError);
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Reset form fields on success
       setFormData({
         from: "",
         to: "",
@@ -86,20 +107,24 @@ export function AddEntryForm() {
         quantity: "",
         orderBy: "",
         remark: "",
-      })
-      setDate(undefined)
+      });
+      setDate(undefined);
+      
       toast({
         title: "Success",
         description: "Material entry added successfully",
-      })
+      });
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to add entry";
+      console.error('Form submission error:', errorMessage);
+      
       toast({
         title: "Error",
-        description: "Failed to add entry",
+        description: errorMessage,
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 

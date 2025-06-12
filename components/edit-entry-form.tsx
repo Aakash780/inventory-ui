@@ -59,23 +59,32 @@ export function EditEntryForm({ entryId }: EditEntryFormProps) {
     remark: "",
     status: "completed" as "completed" | "pending" | "returned"
   })
-
   const fetchEntryData = async () => {
     setIsLoading(true)
     setError(null)
     
     try {
-      const res = await fetch(`/api/inventory/${entryId}`)
+      console.log('Fetching entry with ID:', entryId);
+      
+      if (!entryId) {
+        throw new Error("No inventory entry ID provided");
+      }
+      
+      const res = await fetch(`/api/inventory/${encodeURIComponent(entryId.trim())}`)
       
       if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('API error response:', errorData);
+        
         if (res.status === 404) {
-          throw new Error("Inventory entry not found")
+          throw new Error("Inventory entry not found");
         } else {
-          throw new Error(`Failed to fetch entry: ${res.status}`)
+          throw new Error(`Failed to fetch entry: ${res.status} - ${errorData.error || 'Unknown error'}`);
         }
       }
       
       const entry: InventoryEntry = await res.json()
+      console.log('Fetched entry:', entry);
       
       setFormData({
         from: entry.from,
@@ -113,7 +122,6 @@ export function EditEntryForm({ entryId }: EditEntryFormProps) {
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -135,28 +143,49 @@ export function EditEntryForm({ entryId }: EditEntryFormProps) {
       return
     }
 
+    if (!entryId || entryId.trim() === '') {
+      toast({
+        title: "Error",
+        description: "No entry ID provided for update",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSubmitting(true)
+    console.log('Submitting update for entry:', entryId);
 
     // Send data to API
     try {
-      const res = await fetch(`/api/inventory/${entryId}`, {
+      const updateData = {
+        date: date.toISOString(),
+        from: formData.from,
+        to: formData.to,
+        returnTo: formData.returnTo || null,
+        materialDescription: formData.materialDescription,
+        units: formData.units || null,
+        quantity: Number(formData.quantity),
+        orderBy: formData.orderBy || null,
+        remark: formData.remark || null,
+        status: formData.status
+      };
+      
+      console.log('Update data:', updateData);
+      
+      const res = await fetch(`/api/inventory/${encodeURIComponent(entryId.trim())}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: date.toISOString(),
-          from: formData.from,
-          to: formData.to,
-          returnTo: formData.returnTo || null,
-          materialDescription: formData.materialDescription,
-          units: formData.units || null,
-          quantity: Number(formData.quantity),
-          orderBy: formData.orderBy || null,
-          remark: formData.remark || null,
-          status: formData.status
-        }),
+        body: JSON.stringify(updateData),
       })
       
-      if (!res.ok) throw new Error("Failed to update entry")
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('API error response:', errorData);
+        throw new Error(`Failed to update entry: ${errorData.error || res.statusText || 'Unknown error'}`);
+      }
+      
+      const updatedEntry = await res.json();
+      console.log('Entry updated successfully:', updatedEntry);
       
       toast({
         title: "Success",
